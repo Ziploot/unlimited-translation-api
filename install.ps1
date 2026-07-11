@@ -31,8 +31,16 @@ try {
     Write-Host "[INSTALL] Installing local dependencies..." -ForegroundColor Cyan
     cmd.exe /c "npm install"
 
+    Write-Host "`n[START] Launching Local Translation Server..." -ForegroundColor Cyan
+    # Start the node server in a hidden background window
+    Start-Process -FilePath "node" -ArgumentList "index.js" -WorkingDirectory $projectFolder -WindowStyle Hidden
+    Start-Sleep -Seconds 2
+
+    Write-Host "`n[BROWSER] Opening Translation Dashboard..." -ForegroundColor Cyan
+    Start-Process "http://localhost:3000"
+
     Write-Host "`n==============================================" -ForegroundColor Green
-    Write-Host "[SUCCESS] Translation Gateway Configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Translation Gateway Fully Running!" -ForegroundColor Green
     Write-Host "==============================================" -ForegroundColor Green
     Write-Host "👉 OPTION 1: 1-Click Serverless Cloud Deployment (Cloudflare Workers)" -ForegroundColor Cyan
     Write-Host "No servers to run! Deploy directly to the cloud:"
@@ -41,8 +49,8 @@ try {
     Write-Host "3. Save and Deploy. Your public translation gateway is active!"
     
     Write-Host "`n👉 OPTION 2: Local Server Setup" -ForegroundColor Cyan
-    Write-Host "1. Run command in terminal: npm start"
-    Write-Host "2. Open your browser at: http://localhost:3000"
+    Write-Host "Your server is currently running in the background."
+    Write-Host "To start it manually later, run 'npm start' in: $projectFolder"
     
     Read-Host "`nSetup completed. Press Enter to exit..."
 } catch {
