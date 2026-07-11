@@ -28,7 +28,6 @@ app.post('/api/translate', async (req, res) => {
   }
 });
 
-// Google Translate Undocumented Fetcher (Bypasses limits and API keys)
 async function translateText(text, source, target) {
   const maxChunk = 1000;
   if (text.length > maxChunk) {
@@ -71,7 +70,6 @@ app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
 
-// Premium UI Dashboard
 function getHtmlDashboard() {
   return `<!DOCTYPE html>
 <html lang="en">
