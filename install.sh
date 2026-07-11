@@ -16,9 +16,22 @@ curl -sL "https://raw.githubusercontent.com/Ziploot/unlimited-translation-api/ma
 cd "$PROJECT_DIR"
 npm install
 
+echo -e "
+[START] Launching Local Translation Server..."
+node index.js > /dev/null 2>&1 &
+sleep 2
+
+echo -e "
+[BROWSER] Opening Translation Dashboard..."
+if command -v xdg-open > /dev/null; then
+    xdg-open "http://localhost:3000"
+elif command -v open > /dev/null; then
+    open "http://localhost:3000"
+fi
+
 echo ""
 echo "=============================================="
-echo "[SUCCESS] Translation Gateway Configured!"
+echo "[SUCCESS] Translation Gateway Fully Running!"
 echo "=============================================="
 echo "👉 OPTION 1: 1-Click Serverless Cloud Deployment (Cloudflare Workers)"
 echo "Deploy directly to the cloud for free ($0 Setup):"
@@ -27,6 +40,6 @@ echo "2. Copy code from worker.js and paste it."
 echo "3. Click Save & Deploy. Your public gateway is live!"
 echo ""
 echo "👉 OPTION 2: Local Server Setup"
-echo "1. Run command: npm start"
-echo "2. Open http://localhost:3000 in your browser"
+echo "Your server is currently running in the background."
+echo "To start it manually later, run 'npm start' in: $PROJECT_DIR"
 echo ""
