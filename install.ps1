@@ -20,56 +20,43 @@ try {
 
     Set-Location $projectFolder
 
-    # 1-Click Cloudflare Automated Deploy Option
+    # 1-Click Cloudflare Automated OAuth Deploy Option
     Write-Host "`n==============================================" -ForegroundColor Green
     Write-Host "⚡ OPTION 1: 1-Click Cloudflare Auto-Deployment" -ForegroundColor Green
     Write-Host "==============================================" -ForegroundColor Green
     $deployCloud = Read-Host "[INPUT] Do you want to deploy to Cloudflare Workers automatically for free? (Y/N)"
     
     if ($deployCloud -eq "Y" -or $deployCloud -eq "y") {
-        Write-Host "`nTo deploy, we need your Cloudflare Account details (100% Secure & Local):" -ForegroundColor Cyan
-        $cfAccountId = (Read-Host "[INPUT] Enter your Cloudflare Account ID").Trim()
-        $cfApiToken = (Read-Host "[INPUT] Enter your Cloudflare API Token").Trim()
+        # Check Node.js is required for Wrangler CLI
+        $nodeInstalled = Get-Command node -ErrorAction SilentlyContinue
+        if (-not $nodeInstalled) {
+            Write-Host "[WARN] Node.js not detected. Installing NodeJS via winget..." -ForegroundColor Yellow
+            winget install OpenJS.NodeJS --silent --accept-package-agreements --accept-source-agreements
+            $env:Path += ";$env:ProgramFiles\nodejs"
+        }
+
+        Write-Host "`n[AUTH] Authenticating with Cloudflare via browser. Please click 'Allow' in the browser window..." -ForegroundColor Cyan
+        cmd.exe /c "npx wrangler login"
         
-        if ($cfAccountId -and $cfApiToken) {
-            Write-Host "`n[DEPLOY] Reading worker.js content..." -ForegroundColor Cyan
-            $workerContent = [System.IO.File]::ReadAllText("$projectFolder\worker.js", [System.Text.Encoding]::UTF8)
+        Write-Host "`n[DEPLOY] Deploying worker.js to Cloudflare Workers..." -ForegroundColor Cyan
+        $deployOutput = cmd.exe /c "npx wrangler deploy worker.js --name unlimited-translation-api --compatibility-date 2023-05-18"
+        Write-Output $deployOutput
+        
+        # Parse the deployed URL from Wrangler output
+        $urlMatch = [regex]::Match($deployOutput, 'https://unlimited-translation-api\.[a-zA-Z0-9-]+\.workers\.dev')
+        if ($urlMatch.Success) {
+            $workerUrl = $urlMatch.Value
+            Write-Host "`n[SUCCESS] Cloudflare Worker deployed successfully!" -ForegroundColor Green
+            Write-Host "Your live cloud translator dashboard: $workerUrl" -ForegroundColor Green
             
-            Write-Host "[DEPLOY] Uploading & Deploying Worker script to Cloudflare..." -ForegroundColor Cyan
-            $cfHeaders = @{
-                "Authorization" = "Bearer $cfApiToken"
-                "Content-Type" = "application/javascript"
-            }
-            
-            $uploadUrl = "https://api.cloudflare.com/client/v4/accounts/$cfAccountId/workers/scripts/unlimited-translation-api"
-            
-            try {
-                $cfRes = Invoke-RestMethod -Method Put -Uri $uploadUrl -Headers $cfHeaders -Body $workerContent
-                
-                # Fetch Subdomain
-                $subUrl = "https://api.cloudflare.com/client/v4/accounts/$cfAccountId/workers/subdomain"
-                $subHeaders = @{ "Authorization" = "Bearer $cfApiToken" }
-                $subRes = Invoke-RestMethod -Method Get -Uri $subUrl -Headers $subHeaders
-                $subdomain = $subRes.result.subdomain
-                
-                $workerUrl = "https://unlimited-translation-api.$subdomain.workers.dev"
-                
-                Write-Host "`n[SUCCESS] Cloudflare Worker deployed successfully!" -ForegroundColor Green
-                Write-Host "Your live cloud translator dashboard: $workerUrl" -ForegroundColor Green
-                
-                Write-Host "`n[BROWSER] Launching your Live Cloud Dashboard..." -ForegroundColor Cyan
-                Start-Process $workerUrl
-                Read-Host "`nCloud Setup completed! Press Enter to exit..."
-                Exit
-            } catch {
-                Write-Host "`n[ERROR] Cloudflare deployment failed: $_" -ForegroundColor Red
-                Write-Host "Please double check your Account ID & API Token." -ForegroundColor Yellow
-                Write-Host "Falling back to local setup..." -ForegroundColor Yellow
-                Start-Sleep -Seconds 3
-            }
+            Write-Host "`n[BROWSER] Launching your Live Cloud Dashboard..." -ForegroundColor Cyan
+            Start-Process $workerUrl
+            Read-Host "`nCloud Setup completed! Press Enter to exit..."
+            Exit
         } else {
-            Write-Host "[WARN] Credentials not entered. Falling back to local setup..." -ForegroundColor Yellow
-            Start-Sleep -Seconds 2
+            Write-Host "`n[ERROR] Cloudflare deployment failed or URL could not be parsed." -ForegroundColor Red
+            Write-Host "Falling back to local setup..." -ForegroundColor Yellow
+            Start-Sleep -Seconds 3
         }
     }
 
