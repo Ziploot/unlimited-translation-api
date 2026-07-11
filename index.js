@@ -245,7 +245,7 @@ function getHtmlDashboard() {
     </div>
 
     <div class="btn-container">
-      <button class="btn" onclick="translate()">TRANSLATE TEXT</button>
+      <button class="btn" onclick="triggerTranslation()">TRANSLATE TEXT</button>
     </div>
 
     <!-- API Docs -->
@@ -264,7 +264,7 @@ Content-Type: application/json
   </div>
 
   <script>
-    async function translate() {
+    async function triggerTranslation() {
       const text = document.getElementById("sourceText").value;
       const source = document.getElementById("sourceLang").value;
       const target = document.getElementById("targetLang").value;
