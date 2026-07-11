@@ -23,35 +23,32 @@ echo "=============================================="
 read -p "[INPUT] Do you want to deploy to Cloudflare Workers automatically for free? (y/n): " DEPLOY_CLOUD
 
 if [ "$DEPLOY_CLOUD" = "y" ] || [ "$DEPLOY_CLOUD" = "Y" ]; then
-    echo "To deploy, we need your Cloudflare Account details (100% Secure & Local):"
-    read -p "[INPUT] Enter your Cloudflare Account ID: " CF_ACCOUNT_ID
-    read -p "[INPUT] Enter your Cloudflare API Token: " CF_API_TOKEN
+    echo ""
+    echo "[AUTH] Authenticating with Cloudflare via browser. Please click 'Allow' in the browser window..."
+    npx wrangler login
     
-    if [ -n "$CF_ACCOUNT_ID" ] && [ -n "$CF_API_TOKEN" ]; then
-        echo "[DEPLOY] Uploading & Deploying Worker script to Cloudflare..."
+    echo ""
+    echo "[DEPLOY] Deploying worker.js to Cloudflare Workers..."
+    DEPLOY_OUTPUT=$(npx wrangler deploy worker.js --name unlimited-translation-api --compatibility-date 2023-05-18)
+    echo "$DEPLOY_OUTPUT"
+    
+    # Parse deployed URL using grep
+    WORKER_URL=$(echo "$DEPLOY_OUTPUT" | grep -o 'https://unlimited-translation-api\.[a-zA-Z0-9-]*\.workers\.dev' | head -n 1)
+    
+    if [ -n "$WORKER_URL" ]; then
+        echo ""
+        echo "[SUCCESS] Cloudflare Worker deployed successfully!"
+        echo "Your live cloud translator dashboard: $WORKER_URL"
         
-        UPLOAD_RES=$(curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/workers/scripts/unlimited-translation-api"             -H "Authorization: Bearer $CF_API_TOKEN"             -H "Content-Type: application/javascript"             --data-binary "@worker.js")
-            
-        SUBDOMAIN_RES=$(curl -s -X GET "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/workers/subdomain"             -H "Authorization: Bearer $CF_API_TOKEN")
-            
-        SUBDOMAIN=$(echo "$SUBDOMAIN_RES" | grep -o '"subdomain":"[^"]*' | grep -o '[^"]*$')
-        
-        if [ -n "$SUBDOMAIN" ]; then
-            WORKER_URL="https://unlimited-translation-api.$SUBDOMAIN.workers.dev"
-            echo ""
-            echo "[SUCCESS] Cloudflare Worker deployed successfully!"
-            echo "Your live cloud translator dashboard: $WORKER_URL"
-            
-            if command -v xdg-open > /dev/null; then
-                xdg-open "$WORKER_URL"
-            elif command -v open > /dev/null; then
-                open "$WORKER_URL"
-            fi
-            exit 0
-        else
-            echo "[ERROR] Cloudflare deployment failed. Falling back to local setup..."
-            sleep 2
+        if command -v xdg-open > /dev/null; then
+            xdg-open "$WORKER_URL"
+        elif command -v open > /dev/null; then
+            open "$WORKER_URL"
         fi
+        exit 0
+    else
+        echo "[ERROR] Cloudflare deployment failed. Falling back to local setup..."
+        sleep 2
     fi
 fi
 
