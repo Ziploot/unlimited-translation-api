@@ -20,6 +20,64 @@ try {
 
     Set-Location $projectFolder
 
+    # 1-Click Cloudflare Automated Deploy Option
+    Write-Host "`n==============================================" -ForegroundColor Green
+    Write-Host "⚡ OPTION 1: 1-Click Cloudflare Auto-Deployment" -ForegroundColor Green
+    Write-Host "==============================================" -ForegroundColor Green
+    $deployCloud = Read-Host "[INPUT] Do you want to deploy to Cloudflare Workers automatically for free? (Y/N)"
+    
+    if ($deployCloud -eq "Y" -or $deployCloud -eq "y") {
+        Write-Host "`nTo deploy, we need your Cloudflare Account details (100% Secure & Local):" -ForegroundColor Cyan
+        $cfAccountId = (Read-Host "[INPUT] Enter your Cloudflare Account ID").Trim()
+        $cfApiToken = (Read-Host "[INPUT] Enter your Cloudflare API Token").Trim()
+        
+        if ($cfAccountId -and $cfApiToken) {
+            Write-Host "`n[DEPLOY] Reading worker.js content..." -ForegroundColor Cyan
+            $workerContent = [System.IO.File]::ReadAllText("$projectFolder\worker.js", [System.Text.Encoding]::UTF8)
+            
+            Write-Host "[DEPLOY] Uploading & Deploying Worker script to Cloudflare..." -ForegroundColor Cyan
+            $cfHeaders = @{
+                "Authorization" = "Bearer $cfApiToken"
+                "Content-Type" = "application/javascript"
+            }
+            
+            $uploadUrl = "https://api.cloudflare.com/client/v4/accounts/$cfAccountId/workers/scripts/unlimited-translation-api"
+            
+            try {
+                $cfRes = Invoke-RestMethod -Method Put -Uri $uploadUrl -Headers $cfHeaders -Body $workerContent
+                
+                # Fetch Subdomain
+                $subUrl = "https://api.cloudflare.com/client/v4/accounts/$cfAccountId/workers/subdomain"
+                $subHeaders = @{ "Authorization" = "Bearer $cfApiToken" }
+                $subRes = Invoke-RestMethod -Method Get -Uri $subUrl -Headers $subHeaders
+                $subdomain = $subRes.result.subdomain
+                
+                $workerUrl = "https://unlimited-translation-api.$subdomain.workers.dev"
+                
+                Write-Host "`n[SUCCESS] Cloudflare Worker deployed successfully!" -ForegroundColor Green
+                Write-Host "Your live cloud translator dashboard: $workerUrl" -ForegroundColor Green
+                
+                Write-Host "`n[BROWSER] Launching your Live Cloud Dashboard..." -ForegroundColor Cyan
+                Start-Process $workerUrl
+                Read-Host "`nCloud Setup completed! Press Enter to exit..."
+                Exit
+            } catch {
+                Write-Host "`n[ERROR] Cloudflare deployment failed: $_" -ForegroundColor Red
+                Write-Host "Please double check your Account ID & API Token." -ForegroundColor Yellow
+                Write-Host "Falling back to local setup..." -ForegroundColor Yellow
+                Start-Sleep -Seconds 3
+            }
+        } else {
+            Write-Host "[WARN] Credentials not entered. Falling back to local setup..." -ForegroundColor Yellow
+            Start-Sleep -Seconds 2
+        }
+    }
+
+    # Local Setup Fallback
+    Write-Host "`n==============================================" -ForegroundColor Green
+    Write-Host "⚡ OPTION 2: Local Server Setup" -ForegroundColor Green
+    Write-Host "==============================================" -ForegroundColor Green
+    
     # Check Node.js
     $nodeInstalled = Get-Command node -ErrorAction SilentlyContinue
     if (-not $nodeInstalled) {
@@ -40,16 +98,9 @@ try {
     Start-Process "http://localhost:3000"
 
     Write-Host "`n==============================================" -ForegroundColor Green
-    Write-Host "[SUCCESS] Translation Gateway Fully Running!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Local Translation Gateway Fully Running!" -ForegroundColor Green
     Write-Host "==============================================" -ForegroundColor Green
-    Write-Host "👉 OPTION 1: 1-Click Serverless Cloud Deployment (Cloudflare Workers)" -ForegroundColor Cyan
-    Write-Host "No servers to run! Deploy directly to the cloud:"
-    Write-Host "1. Open Cloudflare Dashboard -> Create a new Worker"
-    Write-Host "2. Copy code from worker.js (in your project folder) and paste it."
-    Write-Host "3. Save and Deploy. Your public translation gateway is active!"
-    
-    Write-Host "`n👉 OPTION 2: Local Server Setup" -ForegroundColor Cyan
-    Write-Host "Your server is currently running in the background."
+    Write-Host "Your local server is currently running in the background."
     Write-Host "To start it manually later, run 'npm start' in: $projectFolder"
     
     Read-Host "`nSetup completed. Press Enter to exit..."
