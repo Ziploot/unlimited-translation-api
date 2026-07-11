@@ -1,6 +1,6 @@
 {
   "name": "unlimited-translation-api",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Unlimited Free Google Translation API Gateway",
   "type": "module",
   "main": "index.js",
